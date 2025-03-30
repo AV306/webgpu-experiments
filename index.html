@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
+
+  </head>
+  <body>
+    <main>
+      <canvas id="canvas" />
+    </main>
+    <script id="shaders" type="text/wgsl">
+      // Depth transform matrix
+      const OPENGL_TO_WGPU_TRANSFORM = mat4x4f(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 0.5, 0,
+        0, 0, 0.5, 1
+      );
+
+      @group(0) @binding(0) var<uniform> modelMatrix: mat4x4f;
+      @group(0) @binding(1) var<uniform> viewMatrix: mat4x4f;
+      @group(0) @binding(2) var<uniform> projectionMatrix: mat4x4f;
+      
+      @group(1) @binding(0) var albedoSampler: sampler;
+      @group(1) @binding(1) var albedoTexture: texture_2d<f32>;
+      
+      @group(2) @binding(0) var normalSampler: sampler;
+      @group(2) @binding(1) var normalTexture: texture_2d<f32>;
+      
+      @group(3) @binding(0) var<uniform> lightPosition: vec3f;
+      //@group(3) @binding(1) var<uniform> lightDirection: vec3f;
+
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+        @location(0) fragWorldPos: vec3f,
+        @location(1) fragWorldNormal: vec3f,
+        @location(2) fragUV: vec2f,
+      }
+
+      @vertex
+      fn vs_main(
+        @location(0) position: vec3f,
+        @location(1) uv: vec2f
+        // @location(2) normal: vec3f
+      ) -> VertexOutput
+      {
+        var output: VertexOutput;
+        output.position = OPENGL_TO_WGPU_TRANSFORM * projectionMatrix * viewMatrix * modelMatrix * vec4f( position, 1.0 );
+        output.fragWorldPos = output.position.xyz;
+        output.fragWorldNormal = output.position.xyz;
+        output.fragUV = uv;
+        return output;
+      }
+  
+      @fragment
+      fn fs_main(
+        @location(0) fragWorldPos: vec3f,
+        @location(1) fragWorldNormal: vec3f,
+        @location(2) fragUV: vec2f
+      ) -> @location(0) vec4f
+      {
+        var lightVector: vec3f = normalize( lightPosition - fragWorldPos );
+        
+        // Create tangent-to-world basis
+        
+        // TODO: this is incorrect
+        var tangentNormal: vec3f = textureSample( normalTexture, normalSampler, fragUV ).xyz - vec3f( 0.5, 0.5, 0 );
+        
+        // Dot light vector with surface normal
+        var diffuse: f32 = dot( normalize( fragWorldNormal + tangentNormal ), lightVector );
+        //return vec4f( lightVector, 1 );
+        return diffuse * textureSample( albedoTexture, albedoSampler, fragUV );
+      }
+    </script>
+    <script src="forward.js" type="module"></script>
+  </body>
+</html>
