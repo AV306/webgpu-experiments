@@ -37,12 +37,12 @@ const vertexBufferLayout = {
     {
       // UV (vec2)
       shaderLocation: 1,
-      offset: 12,
+      offset: Float32Array.BYTES_PER_ELEMENT * 3,
       format: "float32x2"
     }
   ],
-  stepMode: "vertex",
-  arrayStride: 20, // vec3 (position) + vec2 (uv)
+  //stepMode: "vertex",
+  arrayStride: Float32Array.BYTES_PER_ELEMENT * 5, // 20 - vec3 (position) + vec2 (uv)
 }
 
 const cubeVertexCount = cubeVertexData.length;
@@ -87,11 +87,11 @@ function bindModelVertexData( device, vertexData, indexData )
   
   const indexBuffer = device.createBuffer( {
     size: indexData.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
   } );
   
   device.queue.writeBuffer( vertexBuffer, 0, vertexData, 0, vertexData.length );
-  device.queue.writeBuffer( indexBuffer, 0, indexData, 0 );
+  device.queue.writeBuffer( indexBuffer, 0, indexData, 0, indexData.length );
   
   return [vertexBuffer, indexBuffer];
 }
@@ -113,7 +113,7 @@ function bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projecti
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   } );
   
-  device.queue.writeBuffer( modelMatrixBuffer, 0, modelMatrix, 0 );
+  device.queue.writeBuffer( modelMatrixBuffer, 0, modelMatrix, 0, modelMatrix.length );
   device.queue.writeBuffer( viewMatrixBuffer, 0, viewMatrix, 0 );
   device.queue.writeBuffer( projectionMatrixBuffer, 0, projectionMatrix, 0 );
 
