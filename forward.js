@@ -244,9 +244,9 @@ const commandEncoder = device.createCommandEncoder();
 const passEncoder = commandEncoder.beginRenderPass( renderPassDescriptor );
 passEncoder.setPipeline( pipeline );
 passEncoder.setBindGroup( 0, uniformBindGroup );
-passEncoder.setVertexBuffer( 0, modelIndexBuffer );
+passEncoder.setVertexBuffer( 0, modelVertexBuffer );
 passEncoder.setIndexBuffer( modelIndexBuffer, modelIndexDataFormat, 0, modelIndexData.byteLength );
-passEncoder.draw( cubeVertexCount );
+passEncoder.drawIndexed( cubeIndexData.length );
 passEncoder.end();
 
 console.log( "here" );
