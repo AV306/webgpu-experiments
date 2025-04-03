@@ -5,17 +5,18 @@ const HALF_PI = 1.57080;
 const depthBufferFormat = "depth24plus";
 
 const cubeVertexData = new Float32Array( [
-  -0.5, -0.5, 0.5, 0, 0, // Bottom back left
-  0.5, -0.5, 0.5, 1, 0, // Bottom back right
-  0.5, -0.5, -0.5, 1, 1, // Bottom front right
-  -0.5, -0.5, -0.5, 0, 1, // Bottom front left
+  -0.5, -0.5, -0.5,   0, 0, // Bottom back left
+  0.5, -0.5, -0.5,    1, 0, // Bottom back right
+  0.5, -0.5, 0.5,     1, 1, // Bottom front right
+  -0.5, -0.5, 0.5,    0, 1, // Bottom front left
   
-  -0.5, 0.5, 0.5, 0, 0, // Top back left
-  0.5, 0.5, 0.5, 1, 0,
-  0.5, 0.5, -0.5, 1, 1,
-  -0.5, 0.5, -0.5, 0, 1
+  -0.5, 0.5, -0.5,    0, 0, // Top back left
+  0.5, 0.5, -0.5,     1, 0,
+  0.5, 0.5, 0.5,      1, 1,
+  -0.5, 0.5, 0.5,     0, 1
 ] );
 
+// TODO: make these CCW
 const cubeTriangleIndexData = new Uint16Array( [
   0, 1, 2, 0, 2, 3, // Bottom face
   4, 5, 6, 4, 6, 7, // Top face
