@@ -114,8 +114,8 @@ function bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projecti
   } );
   
   device.queue.writeBuffer( modelMatrixBuffer, 0, modelMatrix, 0, modelMatrix.length );
-  device.queue.writeBuffer( viewMatrixBuffer, 0, viewMatrix, 0 );
-  device.queue.writeBuffer( projectionMatrixBuffer, 0, projectionMatrix, 0 );
+  device.queue.writeBuffer( viewMatrixBuffer, 0, viewMatrix, 0, viewMatrix.length );
+  device.queue.writeBuffer( projectionMatrixBuffer, 0, projectionMatrix, 0, projectionMatrix.lengthv);
 
   const uniformBindGroup = device.createBindGroup( {
     layout: pipeline.getBindGroupLayout( 0 ),
@@ -188,7 +188,6 @@ function createRenderPassDescriptor( device, view, depthTexture, clearColor=[0, 
     ],
     depthStencilAttachment: {
       view: depthTexture.createView(),
-
       depthClearValue: 1.0,
       depthLoadOp: "clear",
       depthStoreOp: "store"
@@ -203,7 +202,7 @@ function buildProjectionMatrix( horizontalFov, aspect, near=-1, far=-101 )
 {
   return new Float32Array( [
     1/Math.tan( horizontalFov / 2 ), 0, 0, 0, // Column 0 (leftmost)
-    0, aspect/Math.tan( horizontalFov / 2 ), 0, 0,
+    0,aspect/Math.tan( horizontalFov / 2 ), 0, 0,
     0, 0, -(far + near)/(far - near), -1,
     0, 0, (2 * far * near)/(far - near), 0
   ] );
@@ -234,10 +233,10 @@ const projectionMatrix = buildProjectionMatrix( HALF_PI, aspect );
 // Bind matrix uniforms
 const [modelMatrixBuffer, viewMatrixBuffer, projectionMatrixBuffer, uniformBindGroup] = bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projectionMatrix );
 
-const pipeline = createPipeline( device );
+const pipeline = createPipeline( device, navigator.gpu.getPreferredCanvasFormat(), device.createShaderModule( {code: shaderText} ) );
 const depthTexture = createDepthTexture( device );
 
-const renderPassDescriptor = createRenderPassDescriptor( device, canvasContext.getCurrentTexture().createView(), depthTexture, clearColor=[0, 0.5, 0.5, 1] );
+const renderPassDescriptor = createRenderPassDescriptor( device, canvasContext.getCurrentTexture().createView(), depthTexture );
 
 
 // ========== RENDER ==========
