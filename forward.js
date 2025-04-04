@@ -17,7 +17,7 @@ const cubeVertexData = new Float32Array( [
 ] );
 
 // TODO: make these CCW
-const cubeTriangleIndexData = new Uint16Array( [
+const cubeIndexData = new Uint16Array( [
   0, 1, 2, 0, 2, 3, // Bottom face
   4, 5, 6, 4, 6, 7, // Top face
   0, 4, 7, 0, 7, 3, // Left face
@@ -89,9 +89,10 @@ function bindModelVertexData( device, vertexData, indexData )
     size: indexData.byteLength,
     usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
   } );
-  
   device.queue.writeBuffer( vertexBuffer, 0, vertexData, 0, vertexData.length );
   device.queue.writeBuffer( indexBuffer, 0, indexData, 0, indexData.length );
+  
+  //console.log( "hereewwe" );
   
   return [vertexBuffer, indexBuffer];
 }
@@ -113,9 +114,9 @@ function bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projecti
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
   } );
   
-  device.queue.writeBuffer( modelMatrixBuffer, 0, modelMatrix, 0, modelMatrix.length );
-  device.queue.writeBuffer( viewMatrixBuffer, 0, viewMatrix, 0, viewMatrix.length );
-  device.queue.writeBuffer( projectionMatrixBuffer, 0, projectionMatrix, 0, projectionMatrix.lengthv);
+  device.queue.writeBuffer( modelMatrixBuffer, 0, modelMatrix );
+  device.queue.writeBuffer( viewMatrixBuffer, 0, viewMatrix );
+  device.queue.writeBuffer( projectionMatrixBuffer, 0, projectionMatrix );
 
   const uniformBindGroup = device.createBindGroup( {
     layout: pipeline.getBindGroupLayout( 0 ),
@@ -179,7 +180,7 @@ function createRenderPassDescriptor( device, view, depthTexture, clearColor=[0, 
   const renderPassDescriptor = {
     colorAttachments: [
       {
-        view: view, // Assigned later
+        view: view,
 
         clearValue: clearColor,
         loadOp: "clear",
@@ -190,7 +191,7 @@ function createRenderPassDescriptor( device, view, depthTexture, clearColor=[0, 
       view: depthTexture.createView(),
       depthClearValue: 1.0,
       depthLoadOp: "clear",
-      depthStoreOp: "store"
+      depthStoreOp: "discard"
     }
   };
   
@@ -198,22 +199,31 @@ function createRenderPassDescriptor( device, view, depthTexture, clearColor=[0, 
 }
 
 
-function buildProjectionMatrix( horizontalFov, aspect, near=-1, far=-101 )
+function buildProjectionMatrix( horizontalFov, aspect, near=-1, far=-100 )
 {
   return new Float32Array( [
     1/Math.tan( horizontalFov / 2 ), 0, 0, 0, // Column 0 (leftmost)
-    0,aspect/Math.tan( horizontalFov / 2 ), 0, 0,
+    0, aspect/Math.tan( horizontalFov / 2 ), 0, 0,
     0, 0, -(far + near)/(far - near), -1,
-    0, 0, (2 * far * near)/(far - near), 0
+    0, 0, -(2 * far * near)/(far - near), 0
   ] );
 }
+
+// function buildProjectionMatrix( verticalFov, aspect, near=-1, far=-100 )
+// {
+//   /*return new Float32Array( [
+//     1/(aspect * Math.tan( verticalFov / 2 )), 0, 0, 0, // Column 0 (leftmost)
+//     0, 1/Math.tan( verticalFov / 2 ), 0, 0,
+//     0, 0, -(far + near)/(far - near), -1,
+//     0, 0, -(2 * far * near)/(far - near), 0
+//   ] );*/
+// }
 
 
 // ========== SETUP ==========
 const device = await setupDevice();
 const [canvasContext, aspect] = setupCanvasContext( device );
 const [modelVertexBuffer, modelIndexBuffer] = bindModelVertexData( device, cubeVertexData, cubeIndexData );
-
 
 // Annoyingly, matrices are COLUMN-MAJOR
 const modelMatrix = new Float32Array( [
@@ -222,18 +232,27 @@ const modelMatrix = new Float32Array( [
   0, 0, 1, 0,
   0, 0, 0, 1
 ] ); // Identity for now
+
 const viewMatrix = new Float32Array( [
   1, 0, 0, 0,
   0, 1, 0, 0,
   0, 0, 1, 0,
   0, 0, 0, 1
 ] ); // Identity for now
+
 const projectionMatrix = buildProjectionMatrix( HALF_PI, aspect );
+
+const shaderModule = device.createShaderModule( {code: document.getElementById( "shaders" ).innerText} );
+
+const compilationInfo = await shaderModule.getCompilationInfo();
+for ( const message of compilationInfo.messages )
+  console.log( message );
+
+const pipeline = createPipeline( device, navigator.gpu.getPreferredCanvasFormat(), shaderModule );
 
 // Bind matrix uniforms
 const [modelMatrixBuffer, viewMatrixBuffer, projectionMatrixBuffer, uniformBindGroup] = bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projectionMatrix );
 
-const pipeline = createPipeline( device, navigator.gpu.getPreferredCanvasFormat(), device.createShaderModule( {code: shaderText} ) );
 const depthTexture = createDepthTexture( device );
 
 const renderPassDescriptor = createRenderPassDescriptor( device, canvasContext.getCurrentTexture().createView(), depthTexture );
@@ -245,9 +264,10 @@ const passEncoder = commandEncoder.beginRenderPass( renderPassDescriptor );
 passEncoder.setPipeline( pipeline );
 passEncoder.setBindGroup( 0, uniformBindGroup );
 passEncoder.setVertexBuffer( 0, modelVertexBuffer );
-passEncoder.setIndexBuffer( modelIndexBuffer, modelIndexDataFormat );
+passEncoder.setIndexBuffer( modelIndexBuffer, cubeIndexDataFormat );
 passEncoder.drawIndexed( cubeIndexData.length );
 passEncoder.end();
 
-console.log( "here" );
 device.queue.submit( [commandEncoder.finish()] );
+
+console.log( "hi" )
