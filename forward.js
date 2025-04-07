@@ -2,34 +2,56 @@ const PI = Math.PI;
 const TWO_PI = Math.PI * 2;
 const HALF_PI = Math.PI / 2;
 
-const depthBufferFormat = "depth24plus";
-
 const cubeVertexData = new Float32Array( [
-  -0.5, -0.5, 0.5,   0, 0, // Bottom back left
-  0.5, -0.5, 0.5,    1, 0, // Bottom back right
-  0.5, -0.5, -0.5,     1, 1, // Bottom front right
-  -0.5, -0.5, -0.5,    0, 1, // Bottom front left
+  // Bottom face
+  -0.5, -0.5, -0.5, 0, 0,
+  0.5, -0.5, -0.5, 1, 0,
+  -0.5, -0.5, 0.5, 0, 1,
+  0.5, -0.5, 0.5, 1, 1,
   
-  -0.5, 0.5, 0.5,    0, 0, // Top back left
-  0.5, 0.5, 0.5,     1, 0,
-  0.5, 0.5, -0.5,      1, 1,
-  -0.5, 0.5, -0.5,     0, 1
+  // Top face
+  -0.5, 0.5, -0.5, 0, 0,
+  0.5, 0.5, -0.5, 1, 0,
+  -0.5, 0.5, 0.5, 0, 1,
+  0.5, 0.5, 0.5, 1, 1,
+  
+  // Front face
+  -0.5, -0.5, 0.5, 0, 0,
+  0.5, -0.5, 0.5, 1, 0,
+  -0.5, 0.5, 0.5, 0, 1,
+  0.5, 0.5, 0.5, 1, 1,
+  
+  // Back face
+  -0.5, -0.5, -0.5, 0, 0,
+  0.5, -0.5, -0.5, 1, 0,
+  -0.5, 0.5, -0.5, 0, 1,
+  0.5, 0.5, -0.5, 1, 1,
+  
+  // Left Face
+  -0.5, -0.5, 0.5, 0, 0,
+  -0.5, -0.5, -0.5, 1, 0,
+  -0.5, 0.5, 0.5, 0, 1,
+  -0.5, 0.5, -0.5, 1, 1,
+
+  // Right Face
+  0.5, -0.5, 0.5, 0, 0,
+  0.5, -0.5, -0.5, 1, 0,
+  0.5, 0.5, 0.5, 0, 1,
+  0.5, 0.5, -0.5, 1, 1
+] );
+
+const cubeUVData = new Float32Array( [
+  
 ] );
 
 // TODO: make these CCW
 const cubeIndexData = new Uint16Array( [
-  // 2, 1, 0, 3, 2, 0, // Bottom face
-  // 4, 5, 6, 4, 6, 7, // Top face
-  // 0, 4, 7, 0, 7, 3, // Left face
-  // 1, 5, 6, 1, 6, 2, // right face
-  // 0, 1, 5, 0, 5, 4, // Front face
-  // 2, 6, 7, 2, 7, 3 // Back face
-  2, 1, 0, 3, 2, 0,
-  4, 5, 6, 4, 6, 7,
-  3, 0, 4, 3, 4, 7,
-  1, 2, 6, 1, 6, 5,
-  0, 1, 5, 0, 5, 4,
-  6, 2, 3, 6, 3, 7
+  0, 3, 2, 0, 1, 3,
+  6, 7, 4, 7, 5, 4,
+  8, 11, 10, 8, 9, 11,
+  12, 14, 13, 14, 15, 13,
+  16, 18, 19, 16, 19, 17,
+  20, 21, 23, 20, 23, 22
 ] );
 
 const squareVertexData = new Float32Array( [
@@ -65,6 +87,9 @@ const vertexBufferLayout = {
 
 const cubeVertexCount = cubeVertexData.length;
 const cubeIndexDataFormat = "uint16";
+
+
+const depthBufferFormat = "depth24plus";
 
 async function setupDevice()
 {
@@ -112,12 +137,10 @@ function bindModelVertexData( device, vertexData, indexData )
   device.queue.writeBuffer( vertexBuffer, 0, vertexData, 0, vertexData.length );
   device.queue.writeBuffer( indexBuffer, 0, indexData, 0, indexData.length );
   
-  //console.log( "hereewwe" );
-  
   return [vertexBuffer, indexBuffer];
 }
 
-function bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projectionMatrix )
+function bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projectionMatrix, uniformBindGroupIndex=0 )
 {
   const modelMatrixBuffer = device.createBuffer( {
     size: modelMatrix.byteLength,
@@ -140,7 +163,7 @@ function bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projecti
   device.queue.writeBuffer( projectionMatrixBuffer, 0, projectionMatrix );
 
   const uniformBindGroup = device.createBindGroup( {
-    layout: pipeline.getBindGroupLayout( 0 ),
+    layout: pipeline.getBindGroupLayout( uniformBindGroupIndex ),
     entries: [
       {
         binding: 0,
@@ -160,6 +183,104 @@ function bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projecti
   return [modelMatrixBuffer, viewMatrixBuffer, projectionMatrixBuffer, uniformBindGroup];
 }
 
+function bindTextureUniforms( device, pipeline, textureData, textureSize, textureFormat, uniformBindGroupIndex )
+{
+  const textureBuffer = device.createTexture( {
+    format: textureFormat,
+    size: textureSize,
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+  } );
+  
+  console.log( textureData.BYTES_PER_ELEMENT * textureSize[0] * 4 );
+  
+  device.queue.writeTexture(
+    { texture: textureBuffer },
+    textureData,
+    { bytesPerRow: textureData.BYTES_PER_ELEMENT * textureSize[0] * 4 },
+    textureSize
+  );
+  
+  //console.log( textureBuffer )
+     
+  const textureBindGroup = device.createBindGroup( {
+    layout: pipeline.getBindGroupLayout( uniformBindGroupIndex ),
+    entries: [
+      {
+        binding: 0,
+        resource: device.createSampler()
+      },
+      {
+        binding: 1,
+        resource: textureBuffer.createView()
+      }
+    ]
+  } );
+  
+  return [textureBuffer, textureBindGroup];
+}
+
+async function bindImageTextureUniforms( device, pipeline, imageUrl, textureFormat="rgba8unorm", bindGroupIndex=1 )
+{
+  const response = await fetch( imageUrl );
+  const imageBitmap = await createImageBitmap( await response.blob() );
+  
+  const textureSize = [imageBitmap.width, imageBitmap.height, 1];
+  
+  const textureBuffer = device.createTexture( {
+    size: textureSize,
+    format: textureFormat,
+    usage:
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_DST
+  });
+  
+  device.queue.copyExternalImageToTexture(
+    { source: imageBitmap },
+    { texture: textureBuffer },
+    textureSize
+  );
+  
+  const textureBindGroup = device.createBindGroup( {
+    layout: pipeline.getBindGroupLayout( bindGroupIndex ),
+    entries: [
+      {
+        binding: 0,
+        resource: device.createSampler()
+      },
+      {
+        binding: 1,
+        resource: textureBuffer.createView()
+      }
+    ]
+  } );
+  
+  return [textureBuffer, textureBindGroup];
+}
+
+
+function bindLightUniforms( device, pipeline, lightPos, bindGroupIndex )
+{
+  const uniformBuffer = device.createBuffer( {
+    size: lightPos.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+  } );
+  
+  device.queue.writeBuffer( uniformBuffer, 0, lightPos );
+  
+  const uniformBindGroup = device.createBindGroup( {
+    layout: pipeline.getBindGroupLayout( bindGroupIndex ),
+    entries: [
+      {
+        binding: 0,
+        resource: { buffer: uniformBuffer }
+      }
+    ]
+  } );
+  
+  return [uniformBuffer, uniformBindGroup];
+}
+
+
 function createPipeline( device, presentationFormat, shaderModule )
 {
   const pipeline = device.createRenderPipeline( {
@@ -173,8 +294,8 @@ function createPipeline( device, presentationFormat, shaderModule )
       targets: [ { format: presentationFormat } ]
     },
     primitive: {
-      topology: 'triangle-list',
-      cullMode: "back", // Change to "back" after verifying that depth buffer works
+      topology: "triangle-list",
+      cullMode: "none", // Change to "back" after verifying that depth buffer works
     },
     depthStencil: {
       depthWriteEnabled: true,
@@ -212,7 +333,7 @@ function createRenderPassDescriptor( device, view, depthTexture, clearColor=[0, 
       view: depthTexture.createView(),
       depthClearValue: 1.0,
       depthLoadOp: "clear",
-      depthStoreOp: "discard"
+      depthStoreOp: "store"
     }
   };
   
@@ -222,10 +343,11 @@ function createRenderPassDescriptor( device, view, depthTexture, clearColor=[0, 
 
 function buildProjectionMatrix( horizontalFov, aspect, near=-1, far=-100 )
 {
+  // Annoyingly, all the projection matrices are for OpenGL's depth buffer which is [-1, 1], but WGPU is [0, 1]
   const xScale = 1/Math.tan( horizontalFov / 2 );
   const yScale = aspect * xScale;
-  const zScaleZ = (far + near)/(far - near);
-  const zScaleW = 1; //(2 * far * near)/(near - far);
+  const zScaleZ = (far + near)/(near - far);
+  const zScaleW = (2 * far * near)/(near - far);
   /*return new Float32Array( [
     xScale, 0, 0, 0, // Column 0 (leftmost)
     0, yScale, 0, 0,
@@ -235,9 +357,9 @@ function buildProjectionMatrix( horizontalFov, aspect, near=-1, far=-100 )
   return new Float32Array( [
     xScale, 0, 0, 0, // Column 0 (leftmost)
     0, yScale, 0, 0,
-    0, 0, 0, -1,
-    0, 0, 0, 0
-  ] );
+    0, 0, zScaleZ, -1,
+    0, 0, -zScaleW, 0
+  ] ); // Not sure why zScaleW needs to be negated, but it works, so I'm not complaining
 }
 
 // function buildProjectionMatrix( verticalFov, aspect, near=-1, far=-100 )
@@ -252,10 +374,13 @@ function buildProjectionMatrix( horizontalFov, aspect, near=-1, far=-100 )
 
 
 // ========== SETUP ==========
-const w = 400, h = 300;
+const w = 800, h = 600;
 const device = await setupDevice();
 const [canvasContext, aspect] = setupCanvasContext( device, w, h );
 const [modelVertexBuffer, modelIndexBuffer] = bindModelVertexData( device, cubeVertexData, cubeIndexData );
+
+const matrixUniformBindGroupIndex = 0;
+const textureUniformBindGroupIndex = 1;
 
 // Annoyingly, matrices are COLUMN-MAJOR
 let angle = 0;
@@ -272,10 +397,11 @@ let modelMatrix = new Float32Array( [
   0, 0, 0, 1
 ] );*/
 
+const cameraPitch = Math.PI/4; //PI/4;
 const viewMatrix = new Float32Array( [
   1, 0, 0, 0,
-  0, 1, 0, 0,
-  0, 0, 1, 0,
+  0, Math.cos( cameraPitch ), Math.sin( cameraPitch ), 0,
+  0, -Math.sin( cameraPitch ), Math.cos( cameraPitch ), 0,
   0, 0, -2, 1
 ] );
 
@@ -284,33 +410,51 @@ const projectionMatrix = buildProjectionMatrix( HALF_PI, aspect );
 const shaderModule = device.createShaderModule( {code: document.getElementById( "shaders" ).innerText} );
 
 const compilationInfo = await shaderModule.getCompilationInfo();
+//console.log( compilationInfo )
 for ( const message of compilationInfo.messages )
   console.log( message );
 
 const pipeline = createPipeline( device, navigator.gpu.getPreferredCanvasFormat(), shaderModule );
 
 // Bind matrix uniforms
-const [modelMatrixBuffer, viewMatrixBuffer, projectionMatrixBuffer, uniformBindGroup] = bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projectionMatrix );
+const [modelMatrixBuffer, viewMatrixBuffer, projectionMatrixBuffer, matrixUniformBindGroup] = bindMatrixUniforms( device, pipeline, modelMatrix, viewMatrix, projectionMatrix, matrixUniformBindGroupIndex );
+
+// Bind texture uniforms
+//const [textureBuffer, textureUniformBindGroup] = bindTextureUniforms( device, pipeline, cubeTextureData, cubeTextureSize, cubeTextureFormat, textureUniformBindGroupIndex );
+const [albedoTextureBuffer, albedoTextureUniformBindGroup] = await bindImageTextureUniforms( device, pipeline, "https://raw.githubusercontent.com/webgpu/webgpu-samples/main/public/assets/img/brickwall_albedo.png", "rgba8unorm", 1 );
+
+const [normalTextureBuffer, normalTextureUniformBindGroup] = await bindImageTextureUniforms( device, pipeline, "https://raw.githubusercontent.com/webgpu/webgpu-samples/main/public/assets/img/brickwall_normal.png", "rgba8unorm", 2 );
+
+const [lightUniformBuffer, lightUniformBindGroup] = bindLightUniforms( device, pipeline, new Float32Array( [-2, 3, -5] ), 3 );
+
 const depthTexture = createDepthTexture( device, w, h );
 
 const renderPassDescriptor = createRenderPassDescriptor( device, canvasContext.getCurrentTexture().createView(), depthTexture );
 
 
 // ========== RENDER ==========
-const sleep = (delay) => new Promise( (resolve) => setTimeout( resolve, delay ) );
-
-function frame()
+let prevTime = null;
+function frame( time )
 {
+  const deltaTime = prevTime ? (time - prevTime) / 1000 : 0;
+  prevTime = time;
+  
   modelMatrix[0] = modelMatrix[10] = Math.cos( angle );
   modelMatrix[2] = Math.sin( angle );
   modelMatrix[8] = -Math.sin( angle );
-  
+
   device.queue.writeBuffer( modelMatrixBuffer, 0, modelMatrix );
+  
+  renderPassDescriptor.colorAttachments[0].view = canvasContext.getCurrentTexture().createView();
+
   
   const commandEncoder = device.createCommandEncoder();
   const passEncoder = commandEncoder.beginRenderPass( renderPassDescriptor );
   passEncoder.setPipeline( pipeline );
-  passEncoder.setBindGroup( 0, uniformBindGroup );
+  passEncoder.setBindGroup( matrixUniformBindGroupIndex, matrixUniformBindGroup );
+  passEncoder.setBindGroup( 1, albedoTextureUniformBindGroup );
+  passEncoder.setBindGroup( 2, normalTextureUniformBindGroup );
+  passEncoder.setBindGroup( 3, lightUniformBindGroup );
   passEncoder.setVertexBuffer( 0, modelVertexBuffer );
   passEncoder.setIndexBuffer( modelIndexBuffer, cubeIndexDataFormat );
   passEncoder.drawIndexed( cubeIndexData.length );
@@ -318,8 +462,10 @@ function frame()
 
   device.queue.submit( [commandEncoder.finish()] );
 
-  angle += Math.PI / 20;
-  setTimeout( frame, 100 );
+  angle += (Math.PI / 10) * deltaTime;
+  //setTimeout( frame, 100 );
+  requestAnimationFrame( frame );
+  //frame();
 }
 
 frame();
