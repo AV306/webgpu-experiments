@@ -70,7 +70,7 @@
         // Dot light vector with surface normal
         var diffuse: f32 = dot( normalize( fragWorldNormal + tangentNormal ), lightVector );
         //return vec4f( lightVector, 1 );
-        return textureSample( albedoTexture, albedoSampler, fragUV );
+        return textureSample( normalTexture, albedoSampler, fragUV );
       }
     </script>
     <script src="forward.js" type="module"></script>
