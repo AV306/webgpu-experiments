@@ -68,9 +68,9 @@
         var tangentNormal: vec3f = textureSample( normalTexture, normalSampler, fragUV ).xyz - vec3f( 0.5, 0.5, 0 );
         
         // Dot light vector with surface normal
-        var diffuse: f32 = dot( normalize( fragWorldNormal + tangentNormal ), lightVector );
+        var diffuse: f32 = dot( normalize( fragWorldNormal ), lightVector );
         //return vec4f( lightVector, 1 );
-        return textureSample( normalTexture, albedoSampler, fragUV );
+        return diffuse * textureSample( albedoTexture, albedoSampler, fragUV );
       }
     </script>
     <script src="forward.js" type="module"></script>
