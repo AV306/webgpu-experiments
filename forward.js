@@ -70,10 +70,10 @@ const HALF_PI = Math.PI / 2;
 
 const cubeVertexData = new Float32Array( [
   // Bottom face
-  -0.5, -0.5, -0.5, 0, 0,
-  0.5, -0.5, -0.5, 1, 0,
-  -0.5, -0.5, 0.5, 0, 1,
-  0.5, -0.5, 0.5, 1, 1,
+  -0.5, -0.5, -0.5,  0, 0,
+  0.5, -0.5, -0.5,   1, 0,
+  -0.5, -0.5, 0.5,   0, 1,
+  0.5, -0.5, 0.5,    1, 1,
   
   // Top face
   -0.5, 0.5, -0.5, 0, 0,
@@ -106,11 +106,6 @@ const cubeVertexData = new Float32Array( [
   0.5, 0.5, -0.5, 1, 1
 ] );
 
-const cubeUVData = new Float32Array( [
-  
-] );
-
-// TODO: make these CCW
 const cubeIndexData = new Uint16Array( [
   0, 3, 2, 0, 1, 3,
   6, 7, 4, 7, 5, 4,
@@ -118,18 +113,6 @@ const cubeIndexData = new Uint16Array( [
   12, 14, 13, 14, 15, 13,
   16, 18, 19, 16, 19, 17,
   20, 21, 23, 20, 23, 22
-] );
-
-const squareVertexData = new Float32Array( [
-  -0.5, -0.5, 0, 0, 0,
-  0.5, -0.5, 0,  1, 0,
-  0.5, 0.5, 0,   1, 1,
-  -0.5, 0.5, 0,  0, 1
-] );
-
-const squareIndexData = new Uint16Array( [
-  0, 1, 2,
-  0, 2, 3
 ] );
 
 const vertexBufferLayout = {
@@ -145,10 +128,16 @@ const vertexBufferLayout = {
       shaderLocation: 1,
       offset: Float32Array.BYTES_PER_ELEMENT * 3,
       format: "float32x2"
-    }
+    },
+    /*{
+      // World-space normal (vec3)
+      shaderLocation: 2,
+      offset: Float32Array.BYTES_PER_ELEMENT * 5,
+      format: "float32x3"
+    }.*/
   ],
   //stepMode: "vertex",
-  arrayStride: Float32Array.BYTES_PER_ELEMENT * 5, // 20 - vec3 (position) + vec2 (uv)
+  arrayStride: Float32Array.BYTES_PER_ELEMENT * 5 // 8, // 32 - vec3 (position) + vec2 (uv) + vec3 (normal)
 }
 
 const cubeVertexCount = cubeVertexData.length;
@@ -491,7 +480,7 @@ const [albedoTextureBuffer, albedoTextureUniformBindGroup] = await bindImageText
 
 const [normalTextureBuffer, normalTextureUniformBindGroup] = await bindImageTextureUniforms( device, pipeline, "https://raw.githubusercontent.com/webgpu/webgpu-samples/main/public/assets/img/brickwall_normal.png", "rgba8unorm", 2 );
 
-const [lightUniformBuffer, lightUniformBindGroup] = bindLightUniforms( device, pipeline, new Float32Array( [-2, 3, -5] ), 3 );
+const [lightUniformBuffer, lightUniformBindGroup] = bindLightUniforms( device, pipeline, new Float32Array( [-2, 3,5] ), 3 );
 
 const depthTexture = createDepthTexture( device, w, h );
 
