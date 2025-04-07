@@ -20,8 +20,7 @@ const OPENGL_TO_WGPU_TRANSFORM = mat4x4f(
 @group(3) @binding(0) var<uniform> lightPosition: vec3f;
 //@group(3) @binding(1) var<uniform> lightDirection: vec3f;
 
-struct VertexOutput
-{
+struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) fragWorldPos: vec3f,
   @location(1) fragWorldNormal: vec3f,
@@ -35,10 +34,12 @@ fn vs_main(
   // @location(2) normal: vec3f
 ) -> VertexOutput
 {
+  var vertWorldPos: vec4f = modelMatrix * vec4f( position, 1 );
+  
   var output: VertexOutput;
-  output.position = OPENGL_TO_WGPU_TRANSFORM * projectionMatrix * viewMatrix * modelMatrix * vec4f( position, 1.0 );
-  output.fragWorldPos = output.position.xyz;
-  output.fragWorldNormal = output.position.xyz;
+  output.position = OPENGL_TO_WGPU_TRANSFORM * projectionMatrix * viewMatrix * vertWorldPos;
+  output.fragWorldPos = vertWorldPos.xyz;
+  output.fragWorldNormal = vertWorldPos.xyz;
   output.fragUV = uv;
   return output;
 }
@@ -54,7 +55,7 @@ fn fs_main(
   
   // Create tangent-to-world basis
   
-  // TODO: this is incorrect
+  // TODO: this is incorrect but I'm too lazy to change the vertex format to include the basis
   var tangentNormal: vec3f = textureSample( normalTexture, normalSampler, fragUV ).xyz - vec3f( 0.5, 0.5, 0 );
   
   // Dot light vector with surface normal
@@ -462,7 +463,7 @@ const viewMatrix = new Float32Array( [
 
 const projectionMatrix = buildProjectionMatrix( HALF_PI, aspect );
 
-const shaderModule = device.createShaderModule( {code: document.getElementById( "shaders" ).innerText} );
+const shaderModule = device.createShaderModule( { code: shaderText } );
 
 const compilationInfo = await shaderModule.getCompilationInfo();
 //console.log( compilationInfo )
@@ -480,7 +481,7 @@ const [albedoTextureBuffer, albedoTextureUniformBindGroup] = await bindImageText
 
 const [normalTextureBuffer, normalTextureUniformBindGroup] = await bindImageTextureUniforms( device, pipeline, "https://raw.githubusercontent.com/webgpu/webgpu-samples/main/public/assets/img/brickwall_normal.png", "rgba8unorm", 2 );
 
-const [lightUniformBuffer, lightUniformBindGroup] = bindLightUniforms( device, pipeline, new Float32Array( [-2, 3,5] ), 3 );
+const [lightUniformBuffer, lightUniformBindGroup] = bindLightUniforms( device, pipeline, new Float32Array( [-10, 3, 5] ), 3 );
 
 const depthTexture = createDepthTexture( device, w, h );
 
