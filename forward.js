@@ -54,13 +54,22 @@ fn fs_main(
   var lightVector: vec3f = normalize( lightPosition - fragWorldPos );
   
   // Create tangent-to-world basis
+  // From https://community.khronos.org/t/computing-the-tangent-space-in-the-fragment-shader/52861
+  var Q1: vec3f = dpdx( fragWorldPos );
+  var Q2: vec3f = dpdy( fragWorldPos );
+  var st1: vec2f = dpdx( fragUV );
+  var st2: vec2f = dpdy( fragUV );
+
+  var T: vec3f = normalize( Q1*st2.y - Q2*st1.y );
+  var B: vec3f = normalize( -Q1*st2.x + Q2*st1.x );
+
+  // the transpose of texture-to-eye space matrix
+  var TBN: mat3x3f = mat3x3f( T, B, fragWorldNormal );
   
-  // TODO: this is incorrect but I'm too lazy to change the vertex format to include the basis
-  var tangentNormal: vec3f = textureSample( normalTexture, normalSampler, fragUV ).xyz - vec3f( 0.5, 0.5, 0 );
+  var tangentNormal: vec3f = TBN * (textureSample( normalTexture, normalSampler, fragUV ).xyz * 2 - vec3f( 1 ));
   
   // Dot light vector with surface normal
-  var diffuse: f32 = dot( normalize( fragWorldNormal + tangentNormal ), lightVector );
-  //return vec4f( lightVector, 1 );
+  var diffuse: f32 = dot( normalize( tangentNormal ), lightVector );
   return diffuse * textureSample( albedoTexture, albedoSampler, fragUV );
 }`;
 
