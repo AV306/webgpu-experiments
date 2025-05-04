@@ -253,7 +253,7 @@ function bindTextureUniforms( device, pipeline, textureData, textureSize, textur
   const textureBuffer = device.createTexture( {
     format: textureFormat,
     size: textureSize,
-    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
   } );
   
   console.log( textureData.BYTES_PER_ELEMENT * textureSize[0] * 4 );
@@ -296,7 +296,7 @@ async function bindImageTextureUniforms( device, pipeline, imageUrl, textureForm
     format: textureFormat,
     usage:
       GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_DST
+      GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
   });
   
   device.queue.copyExternalImageToTexture(
